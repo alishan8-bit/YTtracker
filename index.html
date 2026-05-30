@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YOUTRACKS</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%23FF6B35'/><polygon points='38,28 38,72 72,50' fill='white'/></svg>" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #080808; color: #f0f0f0; -webkit-font-smoothing: antialiased; }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+    ::-webkit-scrollbar { width: 6px; } 
+    ::-webkit-scrollbar-track { background: #111; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    select option { background: #111; color: #f0f0f0; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    const SAMPLE_VIDEOS = [
+      {
+        id: "dQw4w9WgXcQ",
+        title: "Never Gonna Give You Up",
+        channel: "Rick Astley",
+        thumbnail: "https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
+        watchedAt: "2026-05-28",
+        rating: 4,
+        review: "A timeless classic. Never gets old.",
+        tags: ["music", "classic"],
+      },
+      {
+        id: "9bZkp7q19f0",
+        title: "PSY - GANGNAM STYLE",
+        channel: "officialpsy",
+        thumbnail: "https://img.youtube.com/vi/9bZkp7q19f0/mqdefault.jpg",
+        watchedAt: "2026-05-20",
+        rating: 3,
+        review: "Cultural phenomenon. Earworm guaranteed.",
+        tags: ["music", "viral"],
+      },
+    ];
+
+    const StarRating = ({ value, onChange, size = 20 }) => {
+      const [hovered, setHovered] = useState(null);
+      return (
+        <div style={{ display: "flex", gap: 2 }}>
+          {[1, 2, 3, 4, 5].map((star) => (
+            <span
+              key={star}
+              onClick={() => onChange && onChange(star)}
+              onMouseEnter={() => onChange && setHovered(star)}
+              onMouseLeave={() => onChange && setHovered(null)}
+              style={{
+                cursor: onChange ? "pointer" : "default",
+                fontSize: size,
+                color: star <= (hovered ?? value) ? "#FF6B35" : "#2a2a2a",
+                transition: "color 0.15s",
+                lineHeight: 1,
+                userSelect: "none",
+              }}
+            >★</span>
+          ))}
+        </div>
+      );
+    };
+
+    const TagBadge = ({ tag }) => (
+      <span style={{
+        background: "rgba(255,107,53,0.12)",
+        color: "#FF6B35",
+        border: "1px solid rgba(255,107,53,0.3)",
+        borderRadius: 4,
+        padding: "2px 8px",
+        fontSize: 11,
+        fontFamily: "'Courier New', monospace",
+        letterSpacing: 1,
+        textTransform: "uppercase",
+      }}>{tag}</span>
+    );
+
+    const VideoCard = ({ video, onEdit, onDelete }) => {
+      const [expanded, setExpanded] = useState(false);
+      const [hover, setHover] = useState(false);
+      return (
+        <div
+          onMouseEnter={() => setHover(true)}
+          onMouseLeave={() => setHover(false)}
+          style={{
+            background: "#111",
+            border: `1px solid ${hover ? "#FF6B35" : "#222"}`,
+            borderRadius: 8,
+            overflow: "hidden",
+            transition: "border-color 0.2s, transform 0.2s",
+            transform: hover ? "translateY(-2px)" : "translateY(0)",
+          }}
+        >
+          <div style={{ display: "flex" }}>
+            <div style={{ position: "relative", flexShrink: 0, width: 160 }}>
+              <img
+                src={video.thumbnail}
+                alt={video.title}
+                style={{ width: 160, height: 90, objectFit: "cover", display: "block" }}
+              />
+              <div style={{
+                position: "absolute", inset: 0,
+                background: "linear-gradient(to right, transparent 60%, #111)",
+              }} />
+              <a
+                href={`https://youtube.com/watch?v=${video.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  position: "absolute", top: "50%", left: "50%",
+                  transform: "translate(-50%,-50%)",
+                  background: "rgba(255,0,0,0.85)",
+                  borderRadius: "50%", width: 32, height: 32,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#fff", fontSize: 12, textDecoration: "none",
+                }}
+              >▶</a>
+            </div>
+
+            <div style={{ flex: 1, padding: "12px 14px", display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, color: "#f0f0f0", lineHeight: 1.3, marginBottom: 2 }}>
+                    {video.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#666", fontFamily: "'Courier New', monospace" }}>
+                    {video.channel} · {video.watchedAt}
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginLeft: 12, flexShrink: 0 }}>
+                  <button onClick={() => onEdit(video)} style={{
+                    background: "none", border: "1px solid #333", color: "#888",
+                    borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer",
+                    fontFamily: "'Courier New', monospace",
+                  }}>edit</button>
+                  <button onClick={() => onDelete(video.id)} style={{
+                    background: "none", border: "1px solid #2a1111", color: "#663333",
+                    borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer",
+                    fontFamily: "'Courier New', monospace",
+                  }}>✕</button>
+                </div>
+              </div>
+
+              <StarRating value={video.rating} size={16} />
+
+              {video.review && (
+                <div
+                  onClick={() => setExpanded(!expanded)}
+                  style={{
+                    fontSize: 13, color: "#888", fontStyle: "italic",
+                    lineHeight: 1.5, marginTop: 2,
+                    borderLeft: "2px solid #222", paddingLeft: 8, cursor: "pointer",
+                  }}
+                >
+                  {expanded || video.review.length <= 80
+                    ? video.review
+                    : video.review.slice(0, 80) + "… "}
+                  {video.review.length > 80 && (
+                    <span style={{ color: "#FF6B35", fontSize: 11 }}>
+                      {expanded ? "less" : "more"}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {video.tags?.length > 0 && (
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+                  {video.tags.map((t) => <TagBadge key={t} tag={t} />)}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const Modal = ({ onClose, children }) => (
+      <div
+        onClick={onClose}
+        style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)",
+          zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center", padding: 20,
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            background: "#0d0d0d", border: "1px solid #2a2a2a",
+            borderRadius: 12, padding: 28, width: "100%", maxWidth: 520,
+            maxHeight: "90vh", overflowY: "auto",
+          }}
+        >{children}</div>
+      </div>
+    );
+
+    const inputStyle = {
+      width: "100%", background: "#111", border: "1px solid #2a2a2a",
+      borderRadius: 6, color: "#f0f0f0", padding: "10px 12px",
+      fontSize: 14, fontFamily: "inherit", boxSizing: "border-box", outline: "none",
+    };
+
+    const labelStyle = {
+      fontSize: 11, color: "#666", fontFamily: "'Courier New', monospace",
+      letterSpacing: 1, textTransform: "uppercase", marginBottom: 6, display: "block",
+    };
+
+    function extractVideoId(input) {
+      const m = input.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+      if (m) return m[1];
+      if (/^[a-zA-Z0-9_-]{11}$/.test(input.trim())) return input.trim();
+      return null;
+    }
+
+    const STORAGE_KEY = "youtracks_videos_v1";
+
+    function App() {
+      const [videos, setVideos] = useState(() => {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          return raw ? JSON.parse(raw) : SAMPLE_VIDEOS;
+        } catch { return SAMPLE_VIDEOS; }
+      });
+
+      const [showAdd, setShowAdd] = useState(false);
+      const [editTarget, setEditTarget] = useState(null);
+      const [search, setSearch] = useState("");
+      const [sortBy, setSortBy] = useState("recent");
+      const [filterRating, setFilterRating] = useState(0);
+
+      const emptyForm = {
+        urlOrId: "", title: "", channel: "",
+        watchedAt: new Date().toISOString().slice(0, 10),
+        rating: 0, review: "", tags: "",
+      };
+      const [form, setForm] = useState(emptyForm);
+      const [formError, setFormError] = useState("");
+      const [loadingMeta, setLoadingMeta] = useState(false);
+
+      useEffect(() => {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(videos)); } catch {}
+      }, [videos]);
+
+      const openAdd = () => {
+        setForm(emptyForm); setFormError(""); setEditTarget(null); setShowAdd(true);
+      };
+
+      const openEdit = (video) => {
+        setForm({
+          urlOrId: video.id, title: video.title, channel: video.channel,
+          watchedAt: video.watchedAt, rating: video.rating,
+          review: video.review || "", tags: (video.tags || []).join(", "),
+        });
+        setFormError(""); setEditTarget(video.id); setShowAdd(true);
+      };
+
+      const fetchMeta = async () => {
+        const vid = extractVideoId(form.urlOrId);
+        if (!vid) { setFormError("Invalid YouTube URL or video ID"); return; }
+        setLoadingMeta(true); setFormError("");
+        try {
+          const res = await fetch(`https://www.youtube.com/oembed?url=https://youtube.com/watch?v=${vid}&format=json`);
+          if (!res.ok) throw new Error("Not found");
+          const data = await res.json();
+          setForm((f) => ({ ...f, urlOrId: vid, title: data.title || f.title, channel: data.author_name || f.channel }));
+        } catch {
+          setFormError("Could not fetch video info. Fill manually.");
+          setForm((f) => ({ ...f, urlOrId: vid }));
+        }
+        setLoadingMeta(false);
+      };
+
+      const saveVideo = () => {
+        const vid = extractVideoId(form.urlOrId) || form.urlOrId;
+        if (!vid) { setFormError("Enter a valid YouTube URL or ID"); return; }
+        if (!form.title.trim()) { setFormError("Title is required"); return; }
+        if (form.rating === 0) { setFormError("Please add a star rating"); return; }
+
+        const entry = {
+          id: vid,
+          title: form.title.trim(),
+          channel: form.channel.trim(),
+          thumbnail: `https://img.youtube.com/vi/${vid}/mqdefault.jpg`,
+          watchedAt: form.watchedAt,
+          rating: form.rating,
+          review: form.review.trim(),
+          tags: form.tags.split(",").map((t) => t.trim().toLowerCase()).filter(Boolean),
+        };
+
+        if (editTarget) {
+          setVideos((v) => v.map((x) => (x.id === editTarget ? entry : x)));
+        } else {
+          if (videos.find((x) => x.id === vid)) { setFormError("This video is already in your list"); return; }
+          setVideos((v) => [entry, ...v]);
+        }
+        setShowAdd(false);
+      };
+
+      const deleteVideo = (id) => setVideos((v) => v.filter((x) => x.id !== id));
+
+      const filtered = videos
+        .filter((v) => {
+          const q = search.toLowerCase();
+          return (!q || v.title.toLowerCase().includes(q) || v.channel.toLowerCase().includes(q))
+            && (filterRating === 0 || v.rating >= filterRating);
+        })
+        .sort((a, b) => {
+          if (sortBy === "recent") return b.watchedAt.localeCompare(a.watchedAt);
+          if (sortBy === "rating") return b.rating - a.rating;
+          if (sortBy === "az") return a.title.localeCompare(b.title);
+          return 0;
+        });
+
+      const avgRating = videos.length > 0
+        ? (videos.reduce((s, v) => s + v.rating, 0) / videos.length).toFixed(1)
+        : "—";
+
+      return (
+        <div style={{ minHeight: "100vh", background: "#080808", color: "#f0f0f0", fontFamily: "'Georgia', serif" }}>
+          {/* Header */}
+          <div style={{
+            borderBottom: "1px solid #1a1a1a", padding: "0 24px",
+            display: "flex", alignItems: "center", justifyContent: "space-between",
+            height: 60, position: "sticky", top: 0, background: "#080808", zIndex: 50,
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 28, height: 28, background: "#FF6B35", borderRadius: 6,
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14,
+              }}>▶</div>
+              <span style={{
+                fontFamily: "'Courier New', monospace", fontWeight: 700,
+                fontSize: 18, letterSpacing: -0.5, color: "#f0f0f0",
+              }}>YOU<span style={{ color: "#FF6B35" }}>TRACKS</span></span>
+            </div>
+            <button onClick={openAdd} style={{
+              background: "#FF6B35", color: "#fff", border: "none", borderRadius: 6,
+              padding: "8px 16px", fontSize: 13, fontFamily: "'Courier New', monospace",
+              fontWeight: 700, cursor: "pointer", letterSpacing: 0.5,
+            }}>+ LOG VIDEO</button>
+          </div>
+
+          <div style={{ maxWidth: 740, margin: "0 auto", padding: "28px 20px" }}>
+            {/* Stats */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
+              {[
+                { label: "WATCHED", value: videos.length },
+                { label: "AVG RATING", value: avgRating },
+                { label: "THIS MONTH", value: videos.filter((v) => v.watchedAt.slice(0, 7) === new Date().toISOString().slice(0, 7)).length },
+              ].map((s) => (
+                <div key={s.label} style={{
+                  background: "#0d0d0d", border: "1px solid #1a1a1a",
+                  borderRadius: 8, padding: "14px 16px", textAlign: "center",
+                }}>
+                  <div style={{ fontFamily: "'Courier New', monospace", fontSize: 26, fontWeight: 700, color: "#FF6B35", lineHeight: 1 }}>{s.value}</div>
+                  <div style={{ fontFamily: "'Courier New', monospace", fontSize: 10, color: "#555", letterSpacing: 1.5, marginTop: 4 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Filters */}
+            <div style={{ display: "flex", gap: 10, marginBottom: 20, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search videos…"
+                style={{ ...inputStyle, width: "auto", flex: 1, minWidth: 180, fontSize: 13 }}
+              />
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                style={{ ...inputStyle, width: "auto", padding: "10px 12px", fontSize: 12, fontFamily: "'Courier New', monospace", cursor: "pointer" }}>
+                <option value="recent">Recent first</option>
+                <option value="rating">Highest rated</option>
+                <option value="az">A–Z</option>
+              </select>
+              <select value={filterRating} onChange={(e) => setFilterRating(Number(e.target.value))}
+                style={{ ...inputStyle, width: "auto", padding: "10px 12px", fontSize: 12, fontFamily: "'Courier New', monospace", cursor: "pointer" }}>
+                <option value={0}>All ratings</option>
+                {[5,4,3,2,1].map((r) => <option key={r} value={r}>{"★".repeat(r)} & up</option>)}
+              </select>
+            </div>
+
+            {/* List */}
+            {filtered.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 20px", color: "#333", fontFamily: "'Courier New', monospace" }}>
+                <div style={{ fontSize: 40, marginBottom: 12 }}>▶</div>
+                <div>No videos logged yet.</div>
+                <div style={{ marginTop: 8, fontSize: 13 }}>
+                  Click <span style={{ color: "#FF6B35", cursor: "pointer" }} onClick={openAdd}>+ LOG VIDEO</span> to start tracking.
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {filtered.map((v) => (
+                  <VideoCard key={v.id} video={v} onEdit={openEdit} onDelete={deleteVideo} />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Modal */}
+          {showAdd && (
+            <Modal onClose={() => setShowAdd(false)}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontFamily: "'Courier New', monospace", fontSize: 16, color: "#f0f0f0", letterSpacing: 1 }}>
+                  {editTarget ? "EDIT LOG" : "LOG VIDEO"}
+                </h2>
+                <button onClick={() => setShowAdd(false)} style={{
+                  background: "none", border: "none", color: "#555", fontSize: 20, cursor: "pointer", lineHeight: 1,
+                }}>✕</button>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <label style={labelStyle}>YouTube URL or Video ID</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input
+                      value={form.urlOrId} onChange={(e) => setForm((f) => ({ ...f, urlOrId: e.target.value }))}
+                      placeholder="https://youtube.com/watch?v=... or video ID"
+                      style={{ ...inputStyle, flex: 1 }}
+                    />
+                    <button onClick={fetchMeta} disabled={loadingMeta || !form.urlOrId} style={{
+                      background: "#FF6B35", border: "none", borderRadius: 6, color: "#fff",
+                      padding: "0 14px", fontSize: 12, fontFamily: "'Courier New', monospace",
+                      cursor: "pointer", whiteSpace: "nowrap", opacity: !form.urlOrId ? 0.5 : 1,
+                    }}>{loadingMeta ? "…" : "FETCH"}</button>
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Title *</label>
+                  <input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="Video title" style={inputStyle} />
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Channel</label>
+                  <input value={form.channel} onChange={(e) => setForm((f) => ({ ...f, channel: e.target.value }))}
+                    placeholder="Channel name" style={inputStyle} />
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <div>
+                    <label style={labelStyle}>Watched On</label>
+                    <input type="date" value={form.watchedAt}
+                      onChange={(e) => setForm((f) => ({ ...f, watchedAt: e.target.value }))}
+                      style={{ ...inputStyle, colorScheme: "dark" }} />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Tags (comma separated)</label>
+                    <input value={form.tags} onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                      placeholder="music, tutorial…" style={inputStyle} />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Your Rating *</label>
+                  <StarRating value={form.rating} onChange={(r) => setForm((f) => ({ ...f, rating: r }))} size={28} />
+                </div>
+
+                <div>
+                  <label style={labelStyle}>Review (optional)</label>
+                  <textarea value={form.review} onChange={(e) => setForm((f) => ({ ...f, review: e.target.value }))}
+                    placeholder="What did you think?" rows={3}
+                    style={{ ...inputStyle, resize: "vertical", lineHeight: 1.5 }} />
+                </div>
+
+                {formError && (
+                  <div style={{
+                    color: "#ff4444", fontSize: 13, fontFamily: "'Courier New', monospace",
+                    background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.2)",
+                    borderRadius: 6, padding: "8px 12px",
+                  }}>{formError}</div>
+                )}
+
+                <button onClick={saveVideo} style={{
+                  background: "#FF6B35", color: "#fff", border: "none", borderRadius: 6,
+                  padding: "12px", fontSize: 14, fontFamily: "'Courier New', monospace",
+                  fontWeight: 700, cursor: "pointer", letterSpacing: 1, marginTop: 4,
+                }}>{editTarget ? "SAVE CHANGES" : "LOG VIDEO"}</button>
+              </div>
+            </Modal>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
